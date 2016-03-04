@@ -16,20 +16,16 @@ def tokenize(string):
     return tokenizer.tokenize(string)
     
 
-def remove_stopwords(tokens):
-    '''removes english stopwords from the list of tokens'''
+def remove_stopwords_and_stem(tokens):
+    '''removes english stopwords from the list of tokens
+    and the tokens that are not stopwords are stemmed'''
+    ps = PorterStemmer()
     stop_words = stopwords.words('english') # gets a list of stopwords
     filtered_tokens = []
     for token in tokens:
         if token not in stop_words:
-            filtered_tokens.append(token)
+            filtered_tokens.append(ps.stem(token))
     return filtered_tokens
-
-def stem(tokens):
-    '''stems each token'''
-    ps = PorterStemmer()
-    for i in range(len(tokens)):
-        tokens[i] = ps.stem(tokens[i])
 
 def create_vector(tokens):
     '''create a vector of terms and its term frequency'''
@@ -49,8 +45,7 @@ def process_docs(corpus_root):
         file.close()
         docstr = docstr.lower()
         tokens = tokenize(docstr)
-        tokens = remove_stopwords(tokens)
-        stem(tokens)
+        tokens = remove_stopwords_and_stem(tokens)
         vector = create_vector(tokens)
         doc_vector[filename] = vector
     return doc_vector
@@ -114,10 +109,8 @@ def process_query(qstring):
     qstring = qstring.lower()
     # tokenize the query
     tokens = tokenize(qstring)
-    # remove stopwords
-    tokens = remove_stopwords(tokens)
-    # stem
-    stem(tokens)
+    # remove stopwords and stem
+    tokens = remove_stopwords_and_stem(tokens)
     # create vector
     query_vector = create_vector(tokens)
     return query_vector
@@ -144,9 +137,16 @@ def get_cosine_sim(vector1, vector2):
         cos_sim += elt1 * elt2
     return cos_sim
 
-def querydocsim(query_vector, filename):
+def querydocsim(qstring, filename):
     '''return the cosine similairty between a
     query string and a document'''
+    query_vector = process_query(qstring)
+    update_term_weights_for_query(query_vector)
+    return querydocsimopt(query_vector, filename)
+
+def querydocsimopt(query_vector, filename):
+    '''return the cosine similairty between a
+    query vector and a document'''
     # doc_col_vector is a column vector which represents each document
     doc_col_vector = doc_vector[filename]
     return get_cosine_sim(query_vector, doc_col_vector)
@@ -163,13 +163,13 @@ def query(qstring):
         # executed only for the first time
         if iteration == 1:
             iteration = 0
-            cos_sim = querydocsim(query_vector, filename)
+            cos_sim = querydocsimopt(query_vector, filename)
             if cos_sim >= max_cos_sim:
                 max_cos_sim = cos_sim
                 doc_with_max_sim = filename
         # executed from the 2nd iteration to the last
         else:
-            cos_sim = querydocsim(query_vector, filename)
+            cos_sim = querydocsimopt(query_vector, filename)
             if cos_sim >= max_cos_sim:
                 max_cos_sim = cos_sim
                 doc_with_max_sim = filename
