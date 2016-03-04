@@ -10,5 +10,5 @@ querydocsim(qstring,filename): return the cosine similairty between a query stri
 
 Instructions:
 import P1
-# P1.query("have been in a loss")
-# similarly execute other queries
+P1.query("have been in a loss")
+similarly execute other queries
